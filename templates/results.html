@@ -1,0 +1,208 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detection Results - Dark Pattern Identification System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header class="header">
+        <div class="header-container">
+            <div class="header-title">
+                <h1>Scan Analysis & Evidence Report</h1>
+                <p>Target: {{ scan.url }}</p>
+            </div>
+            <nav class="nav-links">
+                <a href="{{ url_for('index') }}">Scanner</a>
+                <a href="{{ url_for('history') }}">Scan History</a>
+                {% if session.get('role') == 'ADMIN' %}
+                    <a href="{{ url_for('admin_audit_logs') }}">Audit Logs</a>
+                    <a href="{{ url_for('admin_users') }}">User Accounts</a>
+                {% endif %}
+                {% if session.get('user_id') %}
+                    <a href="{{ url_for('logout') }}">Logout ({{ session.get('username') }})</a>
+                {% else %}
+                    <a href="{{ url_for('login') }}">Login</a>
+                {% endif %}
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+
+        <section class="card">
+            <h3 class="card-title">Analysis Overview</h3>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-label">Target Webpage</div>
+                    <div style="margin-top: 0.5rem; word-break: break-all;">{{ scan.url }}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">DOM Elements</div>
+                    <div class="metric-value">{{ scan.total_elements }}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Findings</div>
+                    <div class="metric-value">{{ scan.total_detections }}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Average Confidence</div>
+                    <div class="metric-value">{{ summary.avg_confidence if summary and summary.avg_confidence else "N/A" }}%</div>
+                </div>
+            </div>
+        </section>
+
+        {% if privacy_risk %}
+        <section class="card">
+            <h3 class="card-title">Privacy Risk Assessment</h3>
+            <p>Deterministic assessment of privacy manipulation and consent-deception indicators.</p>
+            <p style="margin-top: 0.75rem;">
+                <strong>Risk Level:</strong>
+                <span class="badge {% if privacy_risk.level == 'HIGH' %}badge-high{% elif privacy_risk.level == 'MEDIUM' %}badge-medium{% else %}badge-low{% endif %}">
+                    {{ privacy_risk.level }}
+                </span>
+                <strong style="margin-left: 1rem;">Score:</strong> {{ privacy_risk.score }} pts
+            </p>
+
+            <p style="margin-top: 1rem;"><strong>Identified Risk Factors</strong></p>
+            <ul style="margin: 0.5rem 0 0 1.25rem;">
+                {% for reason in privacy_risk.reasons %}
+                    <li>{{ reason }}</li>
+                {% endfor %}
+            </ul>
+        </section>
+        {% endif %}
+
+        {% if summary %}
+        <section class="card">
+            <h3 class="card-title">Analysis Summary</h3>
+            <p>
+                <strong>Severity:</strong>
+                <span class="badge badge-high">High: {{ summary.high_count }}</span>
+                <span class="badge badge-medium">Medium: {{ summary.med_count }}</span>
+                <span class="badge badge-low">Low: {{ summary.low_count }}</span>
+            </p>
+            <p style="margin-top: 0.75rem;">
+                <strong>Categories:</strong>
+                {% for cat, count in summary.cat_distribution.items() %}
+                    <span class="badge badge-hybrid">{{ cat }}: {{ count }}</span>
+                {% endfor %}
+            </p>
+        </section>
+        {% endif %}
+
+        {% if ml_metrics %}
+        <section class="card">
+            <h3 class="card-title">Machine Learning Model Metrics</h3>
+            <p>Evaluation results from the held-out test set using the configured eight-class pattern model.</p>
+            <div class="metrics-grid" style="margin-top: 1rem;">
+                <div class="metric-card">
+                    <div class="metric-label">Model</div>
+                    <div style="margin-top: 0.25rem; font-weight: 700;">{{ ml_metrics.model_name }}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Test Accuracy</div>
+                    <div class="metric-value">{{ "%.2f"|format(ml_metrics.test_accuracy * 100) }}%</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Precision</div>
+                    <div class="metric-value">{{ "%.4f"|format(ml_metrics.precision) }}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Recall</div>
+                    <div class="metric-value">{{ "%.4f"|format(ml_metrics.recall) }}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Macro F1</div>
+                    <div class="metric-value">{{ "%.4f"|format(ml_metrics.macro_f1) }}</div>
+                </div>
+            </div>
+        </section>
+        {% endif %}
+
+        <section class="card">
+            <h3 class="card-title">Detection Findings & Evidence</h3>
+
+            {% if scan.detections %}
+            <div class="table-responsive">
+                <table class="data-table" style="border: 1px solid var(--border-color);">
+                    <thead>
+                        <tr>
+                            <th style="border-right: 1px solid var(--border-color);">Finding</th>
+                            <th style="border-right: 1px solid var(--border-color);">Pattern</th>
+                            <th style="border-right: 1px solid var(--border-color);">Element</th>
+                            <th style="border-right: 1px solid var(--border-color);">Severity</th>
+                            <th style="border-right: 1px solid var(--border-color);">Confidence</th>
+                            <th style="border-right: 1px solid var(--border-color);">Source</th>
+                            <th>Evidence</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for d in scan.detections %}
+                        <tr>
+                            <td style="border-right: 1px solid var(--border-color);"><code>{{ d.finding_id or "FIND-" ~ loop.index }}</code></td>
+                            <td style="border-right: 1px solid var(--border-color);"><strong>{{ d.pattern }}</strong></td>
+                            <td style="border-right: 1px solid var(--border-color);"><code>{{ d.element_type }}</code></td>
+                            <td style="border-right: 1px solid var(--border-color);">
+                                <span class="badge badge-{{ d.severity | lower }}">{{ d.severity }}</span>
+                            </td>
+                            <td style="border-right: 1px solid var(--border-color);">{{ "%.1f"|format(d.confidence * 100) if d.confidence is number else d.confidence }}%</td>
+                            <td style="border-right: 1px solid var(--border-color);">
+                                <span class="badge badge-{{ d.source | lower }}">{{ d.source }}</span>
+                            </td>
+                            <td>
+                                <button type="button" class="btn btn-secondary btn-toggle-detail" data-target="detail-{{ loop.index }}">
+                                    View Evidence
+                                </button>
+                            </td>
+                        </tr>
+
+                        <tr id="detail-{{ loop.index }}" style="display: none;">
+                            <td colspan="7" style="border: 1px solid var(--border-color); background-color: #f8fafc;">
+                                <div style="padding: 1rem;">
+                                    <h4>Finding Explanation</h4>
+                                    <p><strong>Explanation:</strong> {{ d.explanation }}</p>
+                                    <p style="margin-top: 0.5rem;"><strong>Detected Text:</strong> <em>"{{ d.element_text }}"</em></p>
+
+                                    {% if d.privacy_security_relevance %}
+                                    <p style="margin-top: 0.75rem;">
+                                        <strong>Privacy & Security Relevance:</strong>
+                                        {{ d.privacy_security_relevance }}
+                                    </p>
+                                    {% endif %}
+
+                                    {% if d.recommendation %}
+                                    <p style="margin-top: 0.75rem;">
+                                        <strong>Remediation Recommendation:</strong>
+                                        {{ d.recommendation }}
+                                    </p>
+                                    {% endif %}
+
+                                    <h4 style="margin-top: 1rem;">HTML Code</h4>
+                                    <pre class="code-snippet"><code>{{ d.html_snippet }}</code></pre>
+
+                                    {% if d.screenshot_path %}
+                                    <h4 style="margin-top: 1rem;">Evidence Screenshot</h4>
+                                    <img src="{{ url_for('serve_screenshot', filename=d.screenshot_path.split('/')[-1]) }}" alt="Evidence Screenshot" style="max-width: 100%; border: 1px solid var(--border-color);">
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                No deceptive dark pattern UI elements were flagged on this webpage.
+            </div>
+            {% endif %}
+        </section>
+
+    </main>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

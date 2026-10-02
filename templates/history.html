@@ -1,0 +1,342 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scan History - Dark Pattern Identification System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+
+    <header class="header">
+        <div class="header-container">
+
+            <div class="header-title">
+                <h1>Dark Pattern Detection System</h1>
+                <p>Web Interface Analysis & Privacy Deception Detection</p>
+            </div>
+
+            <nav class="nav-links">
+                <a href="{{ url_for('index') }}">Scanner</a>
+                <a href="{{ url_for('history') }}" class="active">Scan History</a>
+                <a href="/demo" target="_blank">Demo Page</a>
+
+                {% if session.get('role') == 'ADMIN' %}
+                    <a href="{{ url_for('admin_audit_logs') }}">Audit Logs</a>
+                    <a href="{{ url_for('admin_users') }}">User Accounts</a>
+                {% endif %}
+
+                {% if session.get('user_id') %}
+                    <a href="{{ url_for('logout') }}">Logout ({{ session.get('username') }})</a>
+                {% else %}
+                    <a href="{{ url_for('login') }}">Login</a>
+                {% endif %}
+            </nav>
+
+        </div>
+    </header>
+
+    <main class="container">
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'error' if category == 'error' else 'info' }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <section style="padding: 2.5rem 0 2rem;">
+
+            <p style="
+                color: var(--text-muted);
+                font-size: 0.78rem;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                margin-bottom: 0.75rem;
+            ">
+                Analysis Archive
+            </p>
+
+            <h2 style="
+                font-size: 2.4rem;
+                line-height: 1.15;
+                max-width: 760px;
+                margin-bottom: 1rem;
+                color: var(--text-color);
+            ">
+                Previous website evaluations.
+            </h2>
+
+            <p style="
+                max-width: 700px;
+                color: var(--text-muted);
+                font-size: 1rem;
+                line-height: 1.7;
+            ">
+                Review previously completed webpage scans, inspect the number
+                of elements analysed, and open individual reports for detailed
+                detection results.
+            </p>
+
+        </section>
+
+        {% if session.get('user_id') %}
+
+            <section style="
+                border-top: 2px solid var(--primary-color);
+                padding-top: 1.25rem;
+            ">
+
+                <div style="
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: baseline;
+                    gap: 1rem;
+                    margin-bottom: 1rem;
+                ">
+                    <h3 style="font-size: 1.1rem;">
+                        Scan Records
+                    </h3>
+
+                    <span style="
+                        color: var(--text-muted);
+                        font-size: 0.8rem;
+                    ">
+                        Persistent analysis archive
+                    </span>
+                </div>
+
+                {% if scans %}
+
+                    <div class="table-responsive">
+                        <table class="data-table">
+
+                            <thead>
+                                <tr>
+                                    <th>Scan</th>
+                                    <th>Target</th>
+                                    <th>Date & Time</th>
+                                    <th>Elements</th>
+                                    <th>Findings</th>
+                                    <th>Report</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                {% for s in scans %}
+                                <tr>
+
+                                    <td>
+                                        <strong>#{{ s.id }}</strong>
+                                    </td>
+
+                                    <td>
+                                        <span style="
+                                            display: block;
+                                            max-width: 360px;
+                                            word-break: break-all;
+                                        ">
+                                            {{ s.url }}
+                                        </span>
+                                    </td>
+
+                                    <td>
+                                        {{ s.scan_date }}
+                                    </td>
+
+                                    <td>
+                                        {{ s.total_elements }}
+                                    </td>
+
+                                    <td>
+                                        {% if s.total_detections > 0 %}
+                                            <span class="badge badge-high">
+                                                {{ s.total_detections }} Flagged
+                                            </span>
+                                        {% else %}
+                                            <span class="badge badge-ml">
+                                                No Findings
+                                            </span>
+                                        {% endif %}
+                                    </td>
+
+                                    <td>
+                                        <a
+                                            href="{{ url_for('view_results', scan_id=s.id) }}"
+                                            class="btn btn-secondary"
+                                            style="
+                                                padding: 0.35rem 0.7rem;
+                                                font-size: 0.8rem;
+                                                text-decoration: none;
+                                            "
+                                        >
+                                            View Report
+                                        </a>
+                                    </td>
+
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+
+                        </table>
+                    </div>
+
+                    <div style="
+                        margin-top: 1rem;
+                        color: var(--text-muted);
+                        font-size: 0.78rem;
+                    ">
+                        {{ scans|length }} stored scan{% if scans|length != 1 %}s{% endif %}
+                        available in the archive.
+                    </div>
+
+                {% else %}
+
+                    <div style="
+                        padding: 2rem 0;
+                        border-top: 1px solid var(--border-color);
+                        border-bottom: 1px solid var(--border-color);
+                    ">
+                        <h3 style="
+                            font-size: 1rem;
+                            margin-bottom: 0.5rem;
+                        ">
+                            No scans have been recorded yet.
+                        </h3>
+
+                        <p style="
+                            color: var(--text-muted);
+                            font-size: 0.88rem;
+                            max-width: 600px;
+                            margin-bottom: 1rem;
+                        ">
+                            Start a website analysis from the scanner to create
+                            your first report record.
+                        </p>
+
+                        <a
+                            href="{{ url_for('index') }}"
+                            class="btn"
+                            style="
+                                text-decoration: none;
+                                font-size: 0.85rem;
+                            "
+                        >
+                            Open Scanner
+                        </a>
+                    </div>
+
+                {% endif %}
+
+            </section>
+
+        {% else %}
+
+            <section style="
+                border-top: 2px solid var(--primary-color);
+                padding: 1.5rem 0;
+            ">
+
+                <h3 style="
+                    font-size: 1.1rem;
+                    margin-bottom: 0.6rem;
+                ">
+                    Sign in to view scan history
+                </h3>
+
+                <p style="
+                    color: var(--text-muted);
+                    font-size: 0.9rem;
+                    max-width: 650px;
+                    margin-bottom: 1rem;
+                ">
+                    Persistent scan records are available to authenticated
+                    users. Sign in to review previous analyses and open
+                    individual reports.
+                </p>
+
+                <a
+                    href="{{ url_for('login') }}"
+                    class="btn"
+                    style="text-decoration: none; font-size: 0.85rem;"
+                >
+                    Login
+                </a>
+
+            </section>
+
+        {% endif %}
+
+        <section style="
+            margin-top: 3rem;
+            padding: 1.5rem 0 2rem;
+            border-top: 1px solid var(--border-color);
+        ">
+
+            <div style="
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 2rem;
+            ">
+
+                <div>
+                    <div class="metric-label">
+                        Archive
+                    </div>
+
+                    <p style="
+                        margin-top: 0.45rem;
+                        color: var(--text-muted);
+                        font-size: 0.85rem;
+                    ">
+                        Previously completed webpage evaluations are retained
+                        for later review.
+                    </p>
+                </div>
+
+                <div>
+                    <div class="metric-label">
+                        Reports
+                    </div>
+
+                    <p style="
+                        margin-top: 0.45rem;
+                        color: var(--text-muted);
+                        font-size: 0.85rem;
+                    ">
+                        Each record links to its complete detection results
+                        and supporting analysis.
+                    </p>
+                </div>
+
+                <div>
+                    <div class="metric-label">
+                        Analysis
+                    </div>
+
+                    <p style="
+                        margin-top: 0.45rem;
+                        color: var(--text-muted);
+                        font-size: 0.85rem;
+                    ">
+                        Detection counts provide a quick indication of findings
+                        before opening an individual report.
+                    </p>
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+
+</body>
+</html>
